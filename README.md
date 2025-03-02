@@ -31,5 +31,7 @@ Oluşturulan chunk'ları konu benzerliğine göre birleştirir. SciPy kütüphan
 Tüm işlem hattını (pipeline) çalıştıran ana fonksiyon. Verilen her metin için üç adımlı bir işlem uygular:
 
 Önişleme ve dinamik eşikli anlamsal birleştirme (rule_based_segmentation ve semantic_merging)
+
 Sınır düzeltmesi (adjust_boundaries)
+
 Konu tabanlı iyileştirme (topic_based_refinement)
