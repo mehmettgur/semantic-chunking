@@ -1,37 +1,41 @@
 # Semantic Chunking
  
-**split_segment_by_word_boundary**
-Çok uzun segmentleri daha küçük parçalara bölmek için kullanılır. Büyük metin parçalarını, kelime sınırlarını koruyarak belirli bir maksimum uzunluğa göre böler. Bölme işlemi sırasında kelimelerin bütünlüğü korunur; yani kelimeler bölünmez, bir kelime ya tamamen bir parçada yer alır ya da bir sonraki parçaya aktarılır. Bu, büyük metinleri daha yönetilebilir parçalara ayırırken anlamsal bütünlüğü korumaya yardımcı olur.
+**splitSegmentByWordBoundary**
+Çok uzun segmentleri, kelime sınırlarını koruyarak belirli bir maksimum karakter uzunluğuna (örneğin, 10000 karakter) göre parçalara böler. Bölme işlemi sırasında kelimelerin bütünlüğü korunur; yani bir kelime ya tamamen bir parçada yer alır ya da bir sonraki parçaya aktarılır. Bu sayede büyük metinler, anlamsal bütünlük kaybı yaşamadan daha yönetilebilir parçalara ayrılır.
 
-**preprocess_segments**
-Segmentleri ön işlemeden geçirerek bölümleme algoritmasına hazırlar. Çok kısa segmentleri (3 karakterden az) eler, çok uzun segmentleri (10000 karakterden fazla) ise split_segment_by_word_boundary fonksiyonunu kullanarak böler. Bu ön işleme, algoritmanın verimsiz çalışmasına neden olabilecek aşırı küçük veya büyük segment sorunlarını önler.
+**preprocessSegments**
+Segmentleri ön işlemeden geçirir; metnin başındaki ve sonundaki boşlukları temizler, çok kısa segmentleri (3 karakterden az) eler ve 10000 karakterden uzun segmentleri, splitSegmentByWordBoundary fonksiyonunu kullanarak daha küçük parçalara böler. Bu adım, aşırı kısa veya büyük segmentlerin algoritmayı olumsuz etkilemesini önler.
 
-**split_text_into_sentences**
-Metni cümlelere bölmek için regular expressions kullanır. Nokta, ünlem işareti gibi cümle sonlarını belirten işaretleri ve büyük harfle başlayan yeni kelimeyi tanımlayarak cümleleri belirler. Ayrıca satır sonlarını da cümle sınırı olarak kabul eder. Elde edilen cümleleri yeniden birleştirerek noktalama işaretlerini doğru şekilde yeniden ekler. Uzun cümleleri 1000 karakter sınırlamasına göre gruplandırır, böylece çok uzun cümleler embedding için daha uygun hale getirilir.
+**splitTextIntoSentences**
+Metni, nokta, ünlem gibi cümle sonu işaretleri ile yeni satır karakterlerine dayanarak cümlelere böler. İlk olarak, uygun regular expression ile cümle sınırları tespit edilir; ardından, elde edilen cümleler yaklaşık 750 karakter sınırına kadar birleştirilir. Böylece, çok kısa cümleler bir araya getirilip, aşırı uzun cümleler daha uygun uzunlukta gruplara dönüştürülür.
 
-**rule_based_segmentation**
-Metni önce cümlelere böler, ardından bu cümlelere preprocess işlemi uygular. Kural tabanlı bölümlemenin amacı, metni anlamsal analiz için uygun ilk parçalara ayırmaktır. Bu fonksiyon, split_text_into_sentences ve preprocess_segments fonksiyonlarını sırasıyla çağırarak bu iki adımı gerçekleştirir.
+**ruleBasedSegmentation**
+Metni önce splitTextIntoSentences ile cümlelere ayırır, ardından preprocessSegments işlemini uygulayarak anlamsal analiz için uygun ilk segmentlere bölünmesini sağlar.
 
-**create_embeddings**
-Metin parçalarını batch yöntemiyle vektöre dönüştürür. Tüm metinleri tek seferde işleyerek embedding modelini bir kez çağırır böylece ayrı ayrı çağrılara kıyasla performans artar. Bu optimizasyon, özellikle API tabanlı embedding modellerinde önemli hız artışı sağlar.
+**createEmbeddings**
+Verilen metin parçalarını, belirlenen embedding modelini kullanarak vektörlere dönüştürür. Tüm metin parçaları tek seferde işlenir ve OpenAI API'si gibi bir servis üzerinden toplu (batch) olarak embedding oluşturulur. Bu yöntem, ayrı ayrı API çağrılarına kıyasla performans artışı sağlar.
 
-**calculate_dynamic_threshold_from_divergences**
-Metnin anlamsal yapısına göre dinamik bir eşik değeri hesaplar. Verilen divergence değerlerinin ortalamasını ve standart sapmasını hesaplayarak bu metne özgü bir eşik değeri oluşturur. Standart sapma küçükse (text parçaları birbirine çok benziyorsa) daha yüksek bir faktör (1.5) kullanır, büyükse (parçalar arasında büyük farklılıklar varsa) daha düşük bir faktör (1.0) kullanır. Bu dinamik yaklaşım farklı metin yapılarına daha iyi uyum sağlar.
+**calculateDynamicThresholdFromDivergences**
+Pencere içerisindeki embedding’ler arasındaki divergence (farklılık) değerlerini temel alarak dinamik bir eşik (threshold) hesaplar. İlk olarak divergence değerlerinin ortalaması ve standart sapması bulunur. Standart sapma:
 
-**semantic_merging**
-Bölümleme işleminin ana mantığını uygular. Tüm segment dizisi üzerinde sliding window yaklaşımı kullanır. Her pencerede, birbirine komşu segmentler arasındaki divergence değerlerini hesaplar ve o pencere için yerel bir threshold belirler. Eğer herhangi bir komşu segment çifti arasındaki farklılık bu eşiği aşarsa, o nokta bir split point olarak kaydedilir. Tüm metin tarandıktan sonra belirlenen bölme noktalarına göre segmentler birleştirilerek nihai chunk'lar oluşturulur.
+0.1’den küçükse (parçalar birbirine çok benziyorsa) 1.4 faktörü,
+0.1 ile 0.3 arasında ise 1.2 faktörü,
+0.3’ten büyükse (parçalar arasında belirgin farklılık varsa) 1.0 faktörü
+ile çarpılarak eşik değeri belirlenir. Bu yaklaşım, farklı metin yapılarına uyum sağlayarak daha doğru bölme noktaları tespit edilmesine olanak tanır.
 
-**adjust_boundaries**
-Oluşturulan chunk'lar arasındaki sınırları optimize eder. İki chunk arasındaki sınırda, sonraki chunk'ın ilk birkaç cümlesinin (transfer_sentence_count sayısında) hangi chunk'a daha çok benzediğini analiz eder. Eğer bu cümleler önceki chunk ile daha yüksek benzerlik gösteriyorsa bu cümleler önceki chunk'a taşınır. Bu işlem, tüm chunk çiftleri için batch yöntemiyle yapılarak optimize edilir. Özellikle sliding window sırasında yanlış yerlere konulabilecek sınırdaki cümlelerin doğru chunk'a yerleştirilmesini sağlar.
+**semanticMerging**
+Segmentler üzerinde sliding window (kaydırmalı pencere) yöntemi kullanılarak, ardışık segmentler arasındaki cosine similarity hesaplanır. Her pencere için hesaplanan divergence değerleri, calculateDynamicThresholdFromDivergences fonksiyonu ile belirlenen yerel eşik değerini aşıyorsa, o nokta split point (bölme noktası) olarak işaretlenir. Tüm metin tarandıktan sonra, bu noktalara göre segmentler birleştirilerek nihai chunk’lar oluşturulur.
 
-~~**topic_based_refinement**
-Oluşturulan chunk'ları konu benzerliğine göre birleştirir. SciPy kütüphanesindeki hiyerarşik kümeleme algoritmasını kullanarak, benzer embeddinglare sahip chunk'ları tespit eder. Benzerlik için kosinüs mesafesi kullanılır ve belirli bir eşiğe (cluster_threshold) göre kümeleme yapılır. Aynı kümede yer alan chunk'lar birleştirilir, ancak birleşim sonucu çok büyük (10000 karakterden fazla) chunk'lar oluşacaksa, bu birleştirme yapılmaz. Bu adım, aynı konuyu içeren ancak farklı chunk'lara bölünmüş metinleri bir araya getirerek bölümlemenin anlamsal tutarlılığını artırır.~~
+**adjustBoundaries**
+Oluşturulan chunk’lar arasındaki sınırları optimize eder. İki chunk arasındaki geçişte, sonraki chunk’ın ilk transfer_sentence_count cümlesi, hem önceki chunk ile hem de kendi kalan kısmıyla olan benzerliği karşılaştırılır. Eğer bu cümleler, önceki chunk ile daha yüksek benzerlik gösteriyorsa, o cümleler önceki chunk’a aktarılır. Bu işlem, anlamsal uyumu artırır ve sınırların daha doğru belirlenmesini sağlar.
 
-**create_documents**
-Tüm işlem hattını (pipeline) çalıştıran ana fonksiyon. Verilen her metin için üç adımlı bir işlem uygular:
+**createDocuments**
+Verilen metinler üzerinde tüm işlem hattını (pipeline) çalıştıran ana fonksiyondur. Her metin için şu adımlar uygulanır:
 
-Önişleme ve dinamik eşikli anlamsal birleştirme (rule_based_segmentation ve semantic_merging)
-
-Sınır düzeltmesi (adjust_boundaries)
-
-~~Konu tabanlı iyileştirme (topic_based_refinement)~~
+Kısa metinler: Eğer metin 10000 karakter veya daha kısa ise, olduğu gibi bir doküman olarak döndürülür.
+Uzun metinler:
+Öncelikle, ruleBasedSegmentation ile metin cümlelere ve segmentlere ayrılır.
+Ardından, semanticMerging ile anlamsal bazda birleştirme yapılır.
+adjustBoundaries fonksiyonu ile oluşturulan chunk’lar arasındaki sınırlar optimize edilir.
+Son olarak, herhangi bir chunk 10000 karakteri aşarsa, splitSegmentByWordBoundary ile daha küçük parçalara bölünür.
+Her doküman, "page_content" anahtarına sahip bir dizi olarak döndürülür.
