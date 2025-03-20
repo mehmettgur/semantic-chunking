@@ -1,4 +1,7 @@
 # Semantic Chunking
+
+![ImageGen 20 Mar 2025 16_45_36](https://github.com/user-attachments/assets/e2212891-31b1-46ea-8f4e-f9d280f8a671)
+
  
 **splitSegmentByWordBoundary**
 Çok uzun segmentleri, kelime sınırlarını koruyarak belirli bir maksimum karakter uzunluğuna (örneğin, 10000 karakter) göre parçalara böler. Bölme işlemi sırasında kelimelerin bütünlüğü korunur; yani bir kelime ya tamamen bir parçada yer alır ya da bir sonraki parçaya aktarılır. Bu sayede büyük metinler, anlamsal bütünlük kaybı yaşamadan daha yönetilebilir parçalara ayrılır.
