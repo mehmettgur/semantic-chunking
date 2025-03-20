@@ -1,6 +1,6 @@
 # Semantic Chunking
 
-![ImageGen 20 Mar 2025 16_45_36](https://github.com/user-attachments/assets/e2212891-31b1-46ea-8f4e-f9d280f8a671)
+<img src="https://github.com/user-attachments/assets/e2212891-31b1-46ea-8f4e-f9d280f8a671" alt="ImageGen 20 Mar 2025 16_45_36" width="300">
 
  
 **splitSegmentByWordBoundary**
